@@ -37,7 +37,9 @@
 </head>
 
 <body>
-  <div id="loading">Loading AR…</div>
+  <div id="loading">TAP TO START AR</div>
+
+  
 
   <script>
     const start = async () => {
@@ -128,7 +130,9 @@
       await mindarThree.start();
     };
 
-    start();
+    document.getElementById('loading').addEventListener('click', () => {
+  start();
+});
   </script>
 </body>
 </html>
