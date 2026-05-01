@@ -3,9 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Invitation WebAR</title>
+  <title>MindAR Minimal Test</title>
 
+  <!-- Three.js -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+  <!-- MindAR (Image Tracking) -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
 
   <style>
@@ -19,7 +21,7 @@
       font-family: sans-serif;
     }
 
-    #loading {
+    #start {
       position: fixed;
       inset: 0;
       display: flex;
@@ -28,57 +30,50 @@
       color: #fff;
       background: #000;
       z-index: 9999;
-      font-size: 14px;
-      letter-spacing: 0.12em;
+      font-size: 16px;
+      letter-spacing: 0.1em;
       cursor: pointer;
     }
   </style>
 </head>
-
 <body>
-  <div id="loading">TAP TO START AR</div>
+  <div id="start">TAP TO START CAMERA</div>
 
   <script>
-    async function startAR() {
-      alert('startAR called');
-      const loading = document.getElementById('loading');
-      loading.innerText = 'STARTING...';
-      loading.style.pointerEvents = 'none';
+    document.getElementById('start').addEventListener('click', async () => {
+      const overlay = document.getElementById('start');
+      overlay.innerText = 'STARTING...';
+      overlay.style.pointerEvents = 'none';
 
-      const mindarThree = new window.MINDAR.IMAGE.MindARThree({
-        container: document.body,
-        imageTargetSrc: './targets.mind'
-      });
+      try {
+        const mindarThree = new window.MINDAR.IMAGE.MindARThree({
+          container: document.body,
+          imageTargetSrc: './targets.mind'
+        });
 
-      const { renderer, scene, camera } = mindarThree;
+        const { renderer, scene, camera } = mindarThree;
+        scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1));
 
-      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-      scene.add(light);
+        const anchor = mindarThree.addAnchor(0);
+        const box = new THREE.Mesh(
+          new THREE.BoxGeometry(0.3, 0.3, 0.3),
+          new THREE.MeshNormalMaterial()
+        );
+        anchor.group.add(box);
 
-      const anchor = mindarThree.addAnchor(0);
-      const loader = new THREE.TextureLoader();
+        renderer.setAnimationLoop(() => {
+          box.rotation.x += 0.01;
+          box.rotation.y += 0.01;
+          renderer.render(scene, camera);
+        });
 
-      const pattern = new THREE.Mesh(
-        new THREE.PlaneGeometry(1, 1.4),
-        new THREE.MeshBasicMaterial({
-          map: loader.load('./pattern.png'),
-          transparent: true,
-          opacity: 0
-        })
-      );
-      pattern.position.set(0, 0, 0.01);
-      anchor.group.add(pattern);
-
-      let isFound = false;
-
-      anchor.onTargetFound = () => {
-        isFound = true;
-      };
-
-      anchor.onTargetLost = () => {
-        isFound = false;
-        pattern.material.opacity = 0;
-      };
-
-      renderer.setAnimationLoop(() => {
-        if (isFound) {
+        await mindarThree.start();
+        overlay.style.display = 'none';
+      } catch (e) {
+        overlay.innerText = 'ERROR';
+        alert(e);
+      }
+    });
+  </script>
+</body>
+</html>
