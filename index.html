@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Invitation WebAR</title>
 
-  <!-- ✅ Three.js（必須） -->
+  <!-- Three.js -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
-  <!-- ✅ MindAR（Image Tracking） -->
+
+  <!-- MindAR (Image Tracking) -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
 
   <style>
@@ -29,44 +30,44 @@
       justify-content: center;
       color: #fff;
       background: #000;
-      z-index: 9999;          /* ★ 最前面 */
-      pointer-events: auto;  /* ★ タップ有効 */
-      cursor: pointer;       /* ★ ボタン感 */
+      z-index: 9999;
       font-size: 14px;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      pointer-events: auto;
     }
   </style>
 </head>
 
 <body>
+  <!-- タップ開始用オーバーレイ -->
   <div id="loading">TAP TO START AR</div>
 
-  
-
   <script>
-    const start = async () => {
-      // ==============================
-      // MindAR 初期化
-      // ==============================
-      const mindarThree = new window.MINDAR.IMAGE.MindARThree({
+    let mindarThree;
+
+    async function startAR() {
+      // 二重起動防止
+      const loading = document.getElementById('loading');
+      loading.innerText = 'STARTING…';
+      loading.style.pointerEvents = 'none';
+
+      mindarThree = new window.MINDAR.IMAGE.MindARThree({
         container: document.body,
-        imageTargetSrc: './targets.mind' // 表紙画像から作った targets.mind
+        imageTargetSrc: './targets.mind'
       });
 
       const { renderer, scene, camera } = mindarThree;
 
-      // 照明（最低限・質感補助）
+      // 照明
       const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
       scene.add(light);
 
-      // マーカー（1枚のみなので index=0）
+      // マーカー（1枚）
       const anchor = mindarThree.addAnchor(0);
-
       const loader = new THREE.TextureLoader();
 
-      // ==============================
-      // 浮き出る「模様」レイヤー
-      // ==============================
+      // ===== 浮き出る模様 =====
       const patternTexture = loader.load('./pattern.png');
       const pattern = new THREE.Mesh(
         new THREE.PlaneGeometry(1, 1.4), // A5縦比率
@@ -76,65 +77,36 @@
           opacity: 0
         })
       );
-      pattern.position.set(0, 0, 0.01); // 少し手前に出して浮遊感
+      pattern.position.set(0, 0, 0.01);
       anchor.group.add(pattern);
-
-      // ==============================
-      // （任意）イベント名・タイポ
-      // title.png が無い場合は削除OK
-      // ==============================
-      let title = null;
-      try {
-        const titleTexture = loader.load('./title.png');
-        title = new THREE.Mesh(
-          new THREE.PlaneGeometry(0.8, 0.2),
-          new THREE.MeshBasicMaterial({
-            map: titleTexture,
-            transparent: true,
-            opacity: 0
-          })
-        );
-        title.position.set(0, 0.6, 0.02);
-        anchor.group.add(title);
-      } catch (e) {
-        console.log('title.png not found, skip');
-      }
 
       let isFound = false;
 
       anchor.onTargetFound = () => {
         isFound = true;
-        document.getElementById('loading').style.display = 'none';
+        loading.style.display = 'none';
       };
 
       anchor.onTargetLost = () => {
         isFound = false;
         pattern.material.opacity = 0;
-        if (title) title.material.opacity = 0;
       };
 
-      // ==============================
-      // アニメーションループ
-      // ==============================
       renderer.setAnimationLoop(() => {
         if (isFound) {
-          // 模様がじわっと浮き出る
           pattern.material.opacity = Math.min(0.7, pattern.material.opacity + 0.015);
           pattern.rotation.z += 0.0008;
-
-          if (title) {
-            title.material.opacity = Math.min(1, title.material.opacity + 0.02);
-          }
         }
         renderer.render(scene, camera);
       });
 
       await mindarThree.start();
-    };
+    }
 
+    // ✅ ユーザー操作でのみ起動（iOS Safari 対策）
     document.getElementById('loading').addEventListener('click', () => {
-  start();
-});
+      startAR();
+    });
   </script>
 </body>
 </html>
