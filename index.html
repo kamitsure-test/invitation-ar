@@ -29,7 +29,9 @@
       justify-content: center;
       color: #fff;
       background: #000;
-      z-index: 10;
+      z-index: 9999;          /* ★ 最前面 */
+      pointer-events: auto;  /* ★ タップ有効 */
+      cursor: pointer;       /* ★ ボタン感 */
       font-size: 14px;
       letter-spacing: 0.1em;
     }
