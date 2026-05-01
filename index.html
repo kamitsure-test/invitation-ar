@@ -5,10 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Invitation WebAR</title>
 
-  <!-- Three.js -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
-
-  <!-- MindAR (Image Tracking) -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
 
   <style>
@@ -34,45 +31,36 @@
       font-size: 14px;
       letter-spacing: 0.12em;
       cursor: pointer;
-      pointer-events: auto;
     }
   </style>
 </head>
 
 <body>
-  <!-- タップ開始用オーバーレイ -->
   <div id="loading">TAP TO START AR</div>
 
   <script>
-    let mindarThree;
-
     async function startAR() {
-      // 二重起動防止
       const loading = document.getElementById('loading');
       loading.innerText = 'STARTING…';
       loading.style.pointerEvents = 'none';
 
-      mindarThree = new window.MINDAR.IMAGE.MindARThree({
+      const mindarThree = new window.MINDAR.IMAGE.MindARThree({
         container: document.body,
         imageTargetSrc: './targets.mind'
       });
 
       const { renderer, scene, camera } = mindarThree;
 
-      // 照明
       const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
       scene.add(light);
 
-      // マーカー（1枚）
       const anchor = mindarThree.addAnchor(0);
       const loader = new THREE.TextureLoader();
 
-      // ===== 浮き出る模様 =====
-      const patternTexture = loader.load('./pattern.png');
       const pattern = new THREE.Mesh(
-        new THREE.PlaneGeometry(1, 1.4), // A5縦比率
+        new THREE.PlaneGeometry(1, 1.4),
         new THREE.MeshBasicMaterial({
-          map: patternTexture,
+          map: loader.load('./pattern.png'),
           transparent: true,
           opacity: 0
         })
@@ -84,7 +72,6 @@
 
       anchor.onTargetFound = () => {
         isFound = true;
-        loading.style.display = 'none';
       };
 
       anchor.onTargetLost = () => {
@@ -94,19 +81,3 @@
 
       renderer.setAnimationLoop(() => {
         if (isFound) {
-          pattern.material.opacity = Math.min(0.7, pattern.material.opacity + 0.015);
-          pattern.rotation.z += 0.0008;
-        }
-        renderer.render(scene, camera);
-      });
-
-      await mindarThree.start();
-    }
-
-    // ✅ ユーザー操作でのみ起動（iOS Safari 対策）
-    document.getElementById('loading').addEventListener('click', () => {
-      startAR();
-    });
-  </script>
-</body>
-</html>
