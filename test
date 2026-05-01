@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Invitation WebAR</title>
+
+  <!-- MindAR + Three.js -->
+  https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: sans-serif;
+    }
+
+    #loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: #000;
+      z-index: 10;
+      font-size: 14px;
+      letter-spacing: 0.1em;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loading">Loading AR…</div>
+
+  <script>
+    const start = async () => {
+      const mindarThree = new window.MINDAR.IMAGE.MindARThree({
+        container: document.body,
+        imageTargetSrc: './targets.mind' // 表紙（認識用）※模様とは別
+      });
+
+      const { renderer, scene, camera } = mindarThree;
+
+      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+      scene.add(light);
+
+      const anchor = mindarThree.addAnchor(0);
+      const loader = new THREE.TextureLoader();
+      /* ==============================
+         浮き出る「模様」レイヤー
+         ※ targets.mind に使っていない画像
+         ============================== */
+      const patternTexture = loader.load('./pattern.png');
+      const pattern = new THREE.Mesh(
+        new THREE.PlaneGeometry(1, 1.4),
+        new THREE.MeshBasicMaterial({
+          map: patternTexture,
+          transparent: true,
+          opacity: 0
+        })
+      );
+      pattern.position.set(0, 0, 0);
+      anchor.group.add(pattern);
+
+
+      /* タイポ（イベント名など） */
+      const titleTexture = loader.load('./title.png');
+      const title = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.8, 0.2),
+        new THREE.MeshBasicMaterial({
+          map: titleTexture,
+          transparent: true,
+          opacity: 0
+        })
+      );
+      title.position.set(0, 0.6, 0.01);
+      anchor.group.add(title);
+
+      let isFound = false;
+
+
+      anchor.onTargetFound = () => {
+        isFound = true;
+        document.getElementById('loading').style.display = 'none';
+      };
+
+      anchor.onTargetLost = () => {
+        isFound = false;
+        pattern.material.opacity = 0;
+        title.material.opacity = 0;
+      };
+
+
+      renderer.setAnimationLoop(() => {
+        if (isFound) {
+          // 模様が「浮き出る」表現
+          pattern.material.opacity = Math.min(0.85, pattern.material.opacity + 0.02);
+          title.material.opacity = Math.min(1, title.material.opacity + 0.02);
+          // 静かなモード系モーション
+          pattern.rotation.z += 0.0008;
+        }        renderer.render(scene, camera);
+      });
+
+      await mindarThree.start();
+    };
+
+    start();
+  </script>
+</body>
